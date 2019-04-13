@@ -1,0 +1,71 @@
+#ifndef MES_ELEMENTCONSTANTS_H
+#define MES_ELEMENTCONSTANTS_H
+
+#include <cmath>
+#include "Point.h"
+
+namespace Constants {
+    const unsigned ELEMENT_NODE_COUNT = 4;
+
+    const double INTEGRATION_POINT_ABSOLUTE_VALUE = 1 / sqrt(3);
+    const Point INTEGRATION_POINT_1({-INTEGRATION_POINT_ABSOLUTE_VALUE, -INTEGRATION_POINT_ABSOLUTE_VALUE});
+    const Point INTEGRATION_POINT_2({INTEGRATION_POINT_ABSOLUTE_VALUE, -INTEGRATION_POINT_ABSOLUTE_VALUE});
+    const Point INTEGRATION_POINT_3({INTEGRATION_POINT_ABSOLUTE_VALUE, INTEGRATION_POINT_ABSOLUTE_VALUE});
+    const Point INTEGRATION_POINT_4({-INTEGRATION_POINT_ABSOLUTE_VALUE, INTEGRATION_POINT_ABSOLUTE_VALUE});
+    const int BOUNDARY_COUNT = 4;
+    const int BOUNDARY_INTEGRATION_POINT_COUNT = 2;
+
+    const Point SEGMENT_INTEGRATION_POINTS[BOUNDARY_COUNT][BOUNDARY_INTEGRATION_POINT_COUNT] = {
+            {{-INTEGRATION_POINT_ABSOLUTE_VALUE, -1}, {INTEGRATION_POINT_ABSOLUTE_VALUE, -1}},
+            {{1, -INTEGRATION_POINT_ABSOLUTE_VALUE}, {1, INTEGRATION_POINT_ABSOLUTE_VALUE}},
+            {{INTEGRATION_POINT_ABSOLUTE_VALUE, 1}, {-INTEGRATION_POINT_ABSOLUTE_VALUE, 1}},
+            {{-1, INTEGRATION_POINT_ABSOLUTE_VALUE}, {-1, -INTEGRATION_POINT_ABSOLUTE_VALUE}},
+    };
+
+    const double SHAPE_FUNCTIONS[ELEMENT_NODE_COUNT][ELEMENT_NODE_COUNT] = {
+            {
+                    0.25 * (1 - INTEGRATION_POINT_1.x) * (1 - INTEGRATION_POINT_1.y), 0.25 * (1 + INTEGRATION_POINT_1.x) * (1 - INTEGRATION_POINT_1.y), 0.25 * (1 + INTEGRATION_POINT_1.x) * (1 + INTEGRATION_POINT_1.y), 0.25 * (1 - INTEGRATION_POINT_1.x) * (1 + INTEGRATION_POINT_1.y),
+            },
+            {
+                    0.25 * (1 - INTEGRATION_POINT_2.x) * (1 - INTEGRATION_POINT_2.y), 0.25 * (1 + INTEGRATION_POINT_2.x) * (1 - INTEGRATION_POINT_2.y), 0.25 * (1 + INTEGRATION_POINT_2.x) * (1 + INTEGRATION_POINT_2.y), 0.25 * (1 - INTEGRATION_POINT_2.x) * (1 + INTEGRATION_POINT_2.y),
+            },
+            {
+                    0.25 * (1 - INTEGRATION_POINT_3.x) * (1 - INTEGRATION_POINT_3.y), 0.25 * (1 + INTEGRATION_POINT_3.x) * (1 - INTEGRATION_POINT_3.y), 0.25 * (1 + INTEGRATION_POINT_3.x) * (1 + INTEGRATION_POINT_3.y), 0.25 * (1 - INTEGRATION_POINT_3.x) * (1 + INTEGRATION_POINT_3.y),
+            },
+            {
+                    0.25 * (1 - INTEGRATION_POINT_4.x) * (1 - INTEGRATION_POINT_4.y), 0.25 * (1 + INTEGRATION_POINT_4.x) * (1 - INTEGRATION_POINT_4.y), 0.25 * (1 + INTEGRATION_POINT_4.x) * (1 + INTEGRATION_POINT_4.y), 0.25 * (1 - INTEGRATION_POINT_4.x) * (1 + INTEGRATION_POINT_4.y),
+            },
+    }; //shapeFunction shorthand is N
+
+    const double dNdKsi[ELEMENT_NODE_COUNT][ELEMENT_NODE_COUNT] = {
+            {
+                    -0.25 * (1 - INTEGRATION_POINT_1.y), 0.25 * (1 - INTEGRATION_POINT_1.y), 0.25 * (1 + INTEGRATION_POINT_1.y), -0.25 * (1 + INTEGRATION_POINT_1.y),
+            },
+            {
+                    -0.25 * (1 - INTEGRATION_POINT_2.y), 0.25 * (1 - INTEGRATION_POINT_2.y), 0.25 * (1 + INTEGRATION_POINT_2.y), -0.25 * (1 + INTEGRATION_POINT_2.y),
+            },
+            {
+                    -0.25 * (1 - INTEGRATION_POINT_3.y), 0.25 * (1 - INTEGRATION_POINT_3.y), 0.25 * (1 + INTEGRATION_POINT_3.y), -0.25 * (1 + INTEGRATION_POINT_3.y),
+            },
+            {
+                    -0.25 * (1 - INTEGRATION_POINT_4.y), 0.25 * (1 - INTEGRATION_POINT_4.y), 0.25 * (1 + INTEGRATION_POINT_4.y), -0.25 * (1 + INTEGRATION_POINT_4.y),
+            }
+    };
+
+    const double dNdEta[ELEMENT_NODE_COUNT][ELEMENT_NODE_COUNT] = {
+            {
+                    -0.25 * (1 - INTEGRATION_POINT_1.x), -0.25 * (1 + INTEGRATION_POINT_1.x), 0.25 * (1 + INTEGRATION_POINT_1.x), 0.25 * (1 - INTEGRATION_POINT_1.x),
+            },
+            {
+                    -0.25 * (1 - INTEGRATION_POINT_2.x), -0.25 * (1 + INTEGRATION_POINT_2.x), 0.25 * (1 + INTEGRATION_POINT_2.x), 0.25 * (1 - INTEGRATION_POINT_2.x),
+            },
+            {
+                    -0.25 * (1 - INTEGRATION_POINT_3.x), -0.25 * (1 + INTEGRATION_POINT_3.x), 0.25 * (1 + INTEGRATION_POINT_3.x), 0.25 * (1 - INTEGRATION_POINT_3.x),
+            },
+            {
+                    -0.25 * (1 - INTEGRATION_POINT_4.x), -0.25 * (1 + INTEGRATION_POINT_4.x), 0.25 * (1 + INTEGRATION_POINT_4.x), 0.25 * (1 - INTEGRATION_POINT_4.x),
+            }
+    };
+}
+
+#endif //MES_ELEMENTCONSTANTS_H
