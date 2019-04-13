@@ -20,7 +20,7 @@ public:
 
     static const int GRID_DIMENSIONS = 2;
 protected:
-    void init(double **temperatures, double **ks);
+    void init(double elementInitialTemperature, double elementKFactor);
 
     double **calculateLocalHMatrix(const Element *element, const std::vector<JacobianMatrix> &jacobianMatrices);
 

@@ -15,43 +15,19 @@ Grid::Grid(std::string filename) {
     buffer << file.rdbuf();
     file.close();
 
-    double **temperatures, **ks;
+    double temperature, kFactor;
     buffer >> height >> width >> rows >> columns;
-
-    temperatures = new double *[rows];
-    for (int i = rows - 1; i >= 0; --i) {
-        temperatures[i] = new double[columns];
-        for (int j = 0; j < columns; ++j) {
-            buffer >> temperatures[i][j];
-        }
-    }
-
-    ks = new double *[rows - 1];
-    for (int i = rows - 2; i >= 0; --i) {
-        ks[i] = new double[columns - 1];
-        for (int j = 0; j < columns - 1; ++j) {
-            buffer >> ks[i][j];
-        }
-    }
+    buffer >> temperature >> kFactor;
     buffer >> heatCapacity >> density >> alpha >> ambientTemperature;
 
     for (auto &boundaryCondition : boundaryConditions) {
         buffer >> boundaryCondition;
     }
 
-    init(temperatures, ks);
-
-    for (int i = 0; i >= rows; ++i) {
-        delete[] temperatures;
-        if (i < rows - 1) {
-            delete[] ks;
-        }
-    }
-    delete[] temperatures;
-    delete[] ks;
+    init(temperature, kFactor);
 }
 
-void Grid::init(double **temperatures, double **ks) {
+void Grid::init(double elementInitialTemperature, double elementKFactor) {
     nodes = new Node *[rows];
     double deltaH = height / (rows - 1);
     double deltaW = width / (columns - 1);
@@ -62,10 +38,10 @@ void Grid::init(double **temperatures, double **ks) {
             nodes[i][j].setY(i * deltaH);
             nodes[i][j].setColumn(j);
             nodes[i][j].setRow(i);
-            nodes[i][j].setTemperature(temperatures[i][j]);
+            nodes[i][j].setTemperature(elementInitialTemperature);
             if (i != rows - 1 && j != columns - 1) {
                 Node *elementNodes[] = {&nodes[i][j], &nodes[i][j + 1], &nodes[i + 1][j + 1], &nodes[i + 1][j]};
-                elements.insert(elements.begin() + j, new Element(elementNodes, ks[i][j]));
+                elements.insert(elements.begin() + j, new Element(elementNodes, elementKFactor));
             }
         }
     }
