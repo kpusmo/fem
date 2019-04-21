@@ -1,121 +1,31 @@
-#include <fstream>
-#include <armadillo>
-#include "Grid.h"
+#include "Solver.h"
+#include <Helpers.h>
 
-Grid::~Grid() {
-    deleteTwoDimensionalArray(nodes, columns);
-    for (auto &element : elements) {
-        delete element;
-    }
+
+Solver::~Solver() {
+    delete grid;
 }
 
-Grid::Grid(std::string filename) {
-    std::ifstream file(filename);
-    std::stringstream buffer;
-    buffer << file.rdbuf();
-    file.close();
-
-    double temperature, kFactor;
-    buffer >> height >> width >> rows >> columns;
-    buffer >> temperature >> kFactor;
-    buffer >> heatCapacity >> density >> alpha >> ambientTemperature;
-
-    for (auto &boundaryCondition : boundaryConditions) {
-        buffer >> boundaryCondition;
-    }
-
-    init(temperature, kFactor);
+void Solver::setParameters(double heatCapacity, double density, double alpha, double ambientTemperature) {
+    this->heatCapacity = heatCapacity;
+    this->density = density;
+    this->alpha = alpha;
+    this->ambientTemperature = ambientTemperature;
 }
 
-void Grid::init(double elementInitialTemperature, double elementKFactor) {
-    nodes = new Node *[rows];
-    double deltaH = height / (rows - 1);
-    double deltaW = width / (columns - 1);
-    for (int i = rows - 1; i >= 0; --i) {
-        nodes[i] = new Node[columns];
-        for (int j = 0; j < columns; ++j) {
-            nodes[i][j].setX(j * deltaW);
-            nodes[i][j].setY(i * deltaH);
-            nodes[i][j].setColumn(j);
-            nodes[i][j].setRow(i);
-            nodes[i][j].setTemperature(elementInitialTemperature);
-            if (i != rows - 1 && j != columns - 1) {
-                Node *elementNodes[] = {&nodes[i][j], &nodes[i][j + 1], &nodes[i + 1][j + 1], &nodes[i + 1][j]};
-                elements.insert(elements.begin() + j, new Element(elementNodes, elementKFactor));
-            }
-        }
-    }
-    for (int i = 0; i < rows; ++i) {
-        for (int j = 0; j < columns; ++j) {
-            nodes[i][j].setId(j * rows + i);
-        }
-    }
-    for (int i = 0; i < rows - 1; ++i) {
-        for (int j = 0; j < columns - 1; ++j) {
-            elements[i * (columns - 1) + j]->setId(j * (rows - 1) + i);
-        }
-    }
+void Solver::setBoundaryConditions(bool bottom, bool right, bool top, bool left) {
+    boundaryConditions[0] = bottom;
+    boundaryConditions[1] = right;
+    boundaryConditions[2] = top;
+    boundaryConditions[3] = left;
 }
 
-void Grid::drawGrid(std::ostream &out) {
-    out << "Node temperatures:\n\n";
-    for (int i = rows - 1; i >= 0; --i) {
-        for (int j = 0; j < columns - 1; ++j) {
-            out << nodes[i][j].getTemperature() << "----";
-        }
-        out << nodes[i][columns - 1].getTemperature() << "\n\n";
-    }
-    out << "Node ids:\n\n";
-    for (int i = rows - 1; i >= 0; --i) {
-        for (int j = 0; j < columns - 1; ++j) {
-            out << nodes[i][j].getId() << "----";
-        }
-        out << nodes[i][columns - 1].getId() << "\n\n";
-    }
-    out << "Node coords:\n\n";
-    for (int i = rows - 1; i >= 0; --i) {
-        for (int j = 0; j < columns - 1; ++j) {
-            out << nodes[i][j].getX() << " " << nodes[i][j].getY() << "----";
-        }
-        out << nodes[i][columns - 1].getX() << " " << nodes[i][columns - 1].getY() << "\n\n";
-    }
-    out << "Element ks:\n\n";
-    for (int i = rows - 2; i >= 0; --i) {
-        for (int j = 0; j < columns - 2; ++j) {
-            out << elements[i * (columns - 1) + j]->getK() << "----";
-        }
-        out << elements[i * (columns - 1) + columns - 2]->getK() << "\n\n";
-    }
-    out << "Element node ids:\n\n";
-    for (int i = rows - 2; i >= 0; --i) {
-        for (int j = 0; j < columns - 2; ++j) {
-            out << elements[i * (columns - 1) + j]->getNode(3)->getId() << ' ' << elements[i * (columns - 1) + j]->getNode(2)->getId() << "----";
-        }
-        out << elements[i * (columns - 1) + columns - 2]->getNode(3)->getId() << ' ' << elements[i * (columns - 1) + columns - 2]->getNode(2)->getId() << "\n\n";
-
-        for (int j = 0; j < columns - 2; ++j) {
-            out << elements[i * (columns - 1) + j]->getNode(0)->getId() << ' ' << elements[i * (columns - 1) + j]->getNode(1)->getId() << "----";
-        }
-        out << elements[i * (columns - 1) + columns - 2]->getNode(0)->getId() << ' ' << elements[i * (columns - 1) + columns - 2]->getNode(1)->getId() << "\n\n\n";
-    }
-    out << "Element ids:\n\n";
-    for (int i = rows - 2; i >= 0; --i) {
-        for (int j = 0; j < columns - 2; ++j) {
-            out << elements[i * (columns - 1) + j]->getId() << "----";
-        }
-        out << elements[i * (columns - 1) + columns - 2]->getId() << "\n\n";
-    }
-    out << "Element edges:\n\n";
-    for (int i = rows - 2; i >= 0; --i) {
-        for (int j = 0; j < columns - 1; ++j) {
-            out << elements[i * (columns - 1) + j]->getEdges(rows, columns) << ' ';
-        }
-        out << "\n\n";
-    }
-    out << "Height: " << height << "; Width: " << width << std::endl;
+void Solver::setGrid(Grid *g) {
+    delete grid;
+    grid = g;
 }
 
-double **Grid::calculateLocalHMatrix(const Element *element, const std::vector<JacobianMatrix> &jacobianMatrices) {
+double **Solver::calculateLocalHMatrix(const Element *element, const std::vector<JacobianMatrix> &jacobianMatrices) {
     double dndx[Constants::ELEMENT_NODE_COUNT][Constants::ELEMENT_NODE_COUNT];
     double dndy[Constants::ELEMENT_NODE_COUNT][Constants::ELEMENT_NODE_COUNT];
     //shape functions derivatives
@@ -143,7 +53,7 @@ double **Grid::calculateLocalHMatrix(const Element *element, const std::vector<J
 
     //boundary conditions: integral(alpha * {N} * {N}^T)dS
     auto segmentLengths = calculateSegmentLengths(element);
-    auto elementEdges = element->getEdges(rows, columns);
+    auto elementEdges = element->getEdges(grid->getRows(), grid->getColumns());
     for (int segmentIndex = 0; segmentIndex < Constants::BOUNDARY_COUNT; ++segmentIndex) {
         if (!boundaryConditions[segmentIndex] || ((elementEdges & (1 << segmentIndex)) == 0)) {
             continue;
@@ -162,7 +72,7 @@ double **Grid::calculateLocalHMatrix(const Element *element, const std::vector<J
     return H;
 }
 
-double **Grid::calculateLocalCMatrix(const std::vector<JacobianMatrix> &jacobianMatrices) {
+double **Solver::calculateLocalCMatrix(const std::vector<JacobianMatrix> &jacobianMatrices) {
     auto C = initializeTwoDimensionalArray(Constants::ELEMENT_NODE_COUNT, Constants::ELEMENT_NODE_COUNT);
     //C matrix: integral(c * ro * {N} * {N}^T)dV
     for (int i = 0; i < Constants::ELEMENT_NODE_COUNT; ++i) { //i - integration point index
@@ -177,14 +87,14 @@ double **Grid::calculateLocalCMatrix(const std::vector<JacobianMatrix> &jacobian
 }
 
 
-double *Grid::calculateLocalPVector(const Element *element) {
+double *Solver::calculateLocalPVector(const Element *element) {
     auto p = new double[Constants::ELEMENT_NODE_COUNT];
     for (int i = 0; i < Constants::ELEMENT_NODE_COUNT; ++i) {
         p[i] = 0;
     }
     //boundary conditions: integral(alpha * {N} * t)dS
     auto segmentLengths = calculateSegmentLengths(element);
-    auto elementEdges = element->getEdges(rows, columns);
+    auto elementEdges = element->getEdges(grid->getRows(), grid->getColumns());
     for (int segmentIndex = 0; segmentIndex < Constants::BOUNDARY_COUNT; ++segmentIndex) {
         if (!boundaryConditions[segmentIndex] || ((elementEdges & (1 << segmentIndex)) == 0)) {
             continue;
@@ -203,7 +113,7 @@ double *Grid::calculateLocalPVector(const Element *element) {
     return p;
 }
 
-double *Grid::calculateSegmentLengths(const Element *const element) {
+double *Solver::calculateSegmentLengths(const Element *const element) {
     auto lengths = new double[Constants::BOUNDARY_COUNT];
     for (int i = 0; i < Constants::BOUNDARY_COUNT; ++i) {
         int j = (i + 1) % Constants::BOUNDARY_COUNT; //next segment index
@@ -214,8 +124,8 @@ double *Grid::calculateSegmentLengths(const Element *const element) {
     return lengths;
 }
 
-void Grid::evaluate(const double &time, const double &tau) {
-    auto nodeCount = columns * rows;
+std::vector<Result> Solver::evaluate(const double &time, const double &tau) {
+    auto nodeCount = grid->getColumns() * grid->getRows();
 
     auto H = initializeTwoDimensionalArray(nodeCount, nodeCount);
     auto C = initializeTwoDimensionalArray(nodeCount, nodeCount);
@@ -225,7 +135,7 @@ void Grid::evaluate(const double &time, const double &tau) {
     }
 
     /* Calculate parameters */
-    for (auto &element : elements) {
+    for (auto &element : grid->getElements()) {
         std::vector<JacobianMatrix> jacobianMatrices;
         jacobianMatrices.reserve(Constants::ELEMENT_NODE_COUNT);
         for (int i = 0; i < Constants::ELEMENT_NODE_COUNT; ++i) {
@@ -265,23 +175,25 @@ void Grid::evaluate(const double &time, const double &tau) {
     /* Get initial temperatures */
     auto temperatures = new double[nodeCount];
     for (int i = 0; i < nodeCount; ++i) {
-        temperatures[i] = nodes[i / rows][i % rows].getTemperature();
+        temperatures[i] = grid->getNodes()[i / grid->getRows()][i % grid->getRows()].getTemperature();
     }
+
+    std::vector<Result> results;
+    results.emplace_back(arma::vec(temperatures, static_cast<const arma::uword>(nodeCount)));
+    delete[] temperatures;
 
     /* Simulation */
     for (int t = 0; t < ceil(time / tau); ++t) {
-        std::cout << t << " iteration\n";
         auto p = new double[nodeCount];
         for (int i = 0; i < nodeCount; ++i) {
             double c = 0;
             for (int j = 0; j < nodeCount; ++j) {
-                c += C[i][j] * temperatures[j];
+                c += C[i][j] * results[t].getTemperatures()(j);
             }
             p[i] = P[i] + c;
         }
 
-        delete[] temperatures;
-        temperatures = solveEquation(H, p);
+        results.emplace_back(solveEquation(H, p));
         delete[] p;
     }
 
@@ -289,18 +201,11 @@ void Grid::evaluate(const double &time, const double &tau) {
     deleteTwoDimensionalArray(H, nodeCount);
     deleteTwoDimensionalArray(C, nodeCount);
     delete[] P;
-    delete[] temperatures;
+    auto it = results.begin();
+    return results;
 }
 
-template<typename T>
-void Grid::deleteTwoDimensionalArray(T **array, const int &rows) {
-    for (int i = 0; i < rows; ++i) {
-        delete[] array[i];
-    }
-    delete[] array;
-}
-
-double **Grid::initializeTwoDimensionalArray(const int &n, const int &m) {
+double **Solver::initializeTwoDimensionalArray(const int &n, const int &m) {
     auto array = new double *[n];
     for (int i = 0; i < n; ++i) {
         array[i] = new double[m];
@@ -311,7 +216,7 @@ double **Grid::initializeTwoDimensionalArray(const int &n, const int &m) {
     return array;
 }
 
-double *Grid::pointShapeFunctions(const Point &point) {
+double *Solver::pointShapeFunctions(const Point &point) {
     auto shapeFunctions = new double[Constants::ELEMENT_NODE_COUNT];
     shapeFunctions[0] = 0.25 * (1 - point.x) * (1 - point.y);
     shapeFunctions[1] = 0.25 * (1 + point.x) * (1 - point.y);
@@ -320,8 +225,8 @@ double *Grid::pointShapeFunctions(const Point &point) {
     return shapeFunctions;
 }
 
-double *Grid::solveEquation(double **H, double *p) {
-    auto nodeCount = static_cast<unsigned long long>(columns * rows);
+arma::vec Solver::solveEquation(double **H, const double *p) {
+    auto nodeCount = static_cast<unsigned long long>(grid->getColumns() * grid->getRows());
     arma::mat A(nodeCount, nodeCount);
     arma::vec b(nodeCount);
     for (arma::uword i = 0; i < nodeCount; ++i) {
@@ -331,10 +236,5 @@ double *Grid::solveEquation(double **H, double *p) {
         b(i) = p[i];
     }
     auto resultVector = arma::solve(A, b).eval();
-    std::cout << "MIN: " << resultVector.min() << "; MAX: " << resultVector.max() << std::endl;
-    auto result = new double[nodeCount];
-    for (unsigned long long i = 0; i < nodeCount; ++i) {
-        result[i] = resultVector(i);
-    }
-    return result;
+    return resultVector;
 }
